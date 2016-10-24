@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+
+require_relative 'lib/spot_hero'
+
+begin
+  if ARGV[0].split(".")[-1] != "json"
+    raise ArgumentError, "Expected lot data file to be in .json format"
+  elsif ARGV.length != 3
+    raise ArgumentError, "Expected three arguments - <lot_rate_json_file> <start_time> <end_time>"
+  end
+  lot = SpotHero::Lot.new(ARGV[0])
+  exec(%(
+    echo #{lot.find_rate(DateTime.parse(ARGV[1]), DateTime.parse(ARGV[2]))}
+  ))
+rescue SpotHero::LotRateError => e
+  exec(%(
+    echo "Invalid operation: #{e.class}: #{e.message}"
+  ))
+rescue ArgumentError => e
+  exec(%(
+    echo "Invalid operation: #{e.class}: #{e.message}"
+  )) if e.message == "invalid date"
+  exec(%(
+    echo "Invalid operation: #{e.class}: #{e.message}"
+  ))
+rescue StandardError => e
+  `echo "#{DateTime.now.to_s} unexpected error" >> log/error_log`
+  `echo "#{e.class}: #{e.message}" >> log/error_log`
+  `echo "#{e.backtrace.join('\n')}\n" >> log/error_log`
+  exec(%(
+    echo "Operation failed. Error: #{e.class}: #{e.message}"
+  ))
+end
